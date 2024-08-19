@@ -11,8 +11,6 @@ from datetime import datetime, date, timedelta
 import time
 import asyncio
 
-api_key = open("api_key_unlimited.txt").read().strip()
-
 class ProfileSimilarityCalculator:
     def __init__(self, api_key, model="text-embedding-3-large"):
         self.client = AsyncOpenAI(api_key=api_key)
@@ -31,7 +29,7 @@ class ProfileSimilarityCalculator:
             "dba": ["dba", "d.b.a", "doctor of business administration"],
         }
 
-    async def get_embedding(self, text, max_retries=5, initial_delay=1, timeout=20):
+    async def get_embedding(self, text, max_retries=8, initial_delay=1, timeout=20):
         start = time.time()
 
         if not text:
@@ -47,7 +45,7 @@ class ProfileSimilarityCalculator:
             try:
                 response = await asyncio.wait_for(task, timeout=timeout)
                 end = time.time()
-                print(f"Start time {start}, end time {end}, Time taken: {end-start}")
+                # print(f"Start time {start}, end time {end}, Time taken: {end-start}")
                 return [r.embedding for r in response.data]
             except asyncio.TimeoutError:
                 print(f"Attempt {retries + 1} failed: Timeout")
@@ -537,7 +535,7 @@ class ProfileSimilarityCalculator:
             position.append(result)
             embeddings = embeddings[4:]
         end = time.time()
-        print(f"Time taken for finishing up: {end - start}")
+        # print(f"Time taken for finishing up: {end - start}")
         return education, position
 
     async def calculate_profile_similarity(self, profile1, profile2):
@@ -581,6 +579,7 @@ async def test2():
 
 if __name__ == "__main__":
     start = time.time()
+    api_key = open("api_key_unlimited.txt").read().strip()
     psc = ProfileSimilarityCalculator(api_key)
     with open('export_profiles.jsonl', 'r') as f:
         data = [(json.loads(line)) for line in f]
