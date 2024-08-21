@@ -12,6 +12,11 @@ import time
 import asyncio
 
 class ProfileSimilarityCalculator:
+    # ProfileSimilarityCalculator class to calculate the similarity between profiles using OpenAI embeddings.
+    # Attributes:
+    # - client: OpenAI client for making API calls.
+    # - model: The model used for generating embeddings.
+    # - DEGREE_ALIAS: A dictionary mapping degree aliases to their normalized forms.
     def __init__(self, api_key, model="text-embedding-3-large"):
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
@@ -30,6 +35,14 @@ class ProfileSimilarityCalculator:
         }
 
     async def get_embedding(self, text, max_retries=8, initial_delay=1, timeout=20):
+        # Asynchronously fetch embeddings for the provided text. Retries fetching in case of failure.
+        # Parameters:
+        # - text: The text or list of texts to get embeddings for.
+        # - max_retries: Maximum number of retries in case of failure.
+        # - initial_delay: Initial delay before retrying.
+        # - timeout: Timeout for the API call.
+        # Returns:
+        # - List of embeddings.
         start = time.time()
 
         if not text:
@@ -209,21 +222,27 @@ class ProfileSimilarityCalculator:
         
         return results
 
-    def process_education(self, target_embedding, similar_embedding):
+    def process_education(self, target_education_list, similar_education_list):
+        # Process the education embeddings to find the best matches between target and similar embeddings.
+        # Parameters:
+        # - target_embedding: List of target education embeddings.
+        # - similar_embedding: List of similar education embeddings.
+        # Returns:
+        # - List of dictionaries containing the best matches and their similarity scores.
         
-        if not target_embedding or not similar_embedding:
+        if not target_education_list or not similar_education_list:
             return 0
 
         # add the index to each dictionary in the list
-        for i in range(len(target_embedding)):
-            target_embedding[i]['index'] = i
-        for i in range(len(similar_embedding)):
-            similar_embedding[i]['index'] = i
+        for i in range(len(target_education_list)):
+            target_education_list[i]['index'] = i
+        for i in range(len(similar_education_list)):
+            similar_education_list[i]['index'] = i
         
-        target_similar_mapping = [dict() for _ in range(len(target_embedding))] # the index will be the target position index, the content will be the best match index and parts in similar_position_list
+        target_similar_mapping = [dict() for _ in range(len(target_education_list))] # the index will be the target position index, the content will be the best match index and parts in similar_position_list
 
-        # Generate all combinations of target and similar embeddings
-        all_combinations = [(t, s) for t in target_embedding for s in similar_embedding]
+        # Generate all combinations of target and similar list
+        all_combinations = [(t, s) for t in target_education_list for s in similar_education_list]
         
         combination_similarities = []
         for (t, s) in all_combinations:
@@ -259,7 +278,13 @@ class ProfileSimilarityCalculator:
 
         return target_similar_mapping
 
-    async def calculate_similarity_weighted(self, target_education, similar_education):
+    async def calculate_education_similarity(self, target_education, similar_education):
+        # Calculate the education similarity between target and similar profiles.
+        # Parameters:
+        # - target_education: The education part of the target profile (should be a list of dictionaries).
+        # - similar_education: The education part of the similar profile (should be a list of dictionaries).
+        # Returns:
+        # - List of dictionaries containing the best matches and their similarity scores.
         
         target_embedding, similar_embedding = await asyncio.gather(
                 self.get_weighted_embedding(target_education),
@@ -374,6 +399,12 @@ class ProfileSimilarityCalculator:
         return score >= 3
 
     def process_position(self, target_position_list, similar_position_list):
+        # Process the position embeddings to find the best matches between target and similar embeddings.
+        # Parameters:
+        # - target_position_list: List of target position embeddings.
+        # - similar_position_list: List of similar position embeddings.
+        # Returns:
+        # - List of dictionaries containing the best matches and their similarity scores.
         
         if not target_position_list or not similar_position_list:
             return 0
@@ -430,6 +461,12 @@ class ProfileSimilarityCalculator:
         return target_similar_mapping
 
     async def calculate_position_all_comb(self, target, similar):
+        # Calculate the position similarity between target and similar profiles.
+        # Parameters:
+        # - target: The position part of the target profile (should be a list of dictionaries).
+        # - similar: The position part of the similar profile (should be a list of dictionaries).
+        # Returns:  
+        # - List of dictionaries containing the best matches and their similarity scores.
 
         target_position_list, similar_position_list = await asyncio.gather(
             self.get_position_info(target), 
@@ -477,6 +514,11 @@ class ProfileSimilarityCalculator:
         return result
 
     async def get_profile_embeddings(self, profile):
+        # Get embeddings for a profile's education and position sections.
+        # Parameters:
+        # - profile: The profile data containing education and position information. (the raw data)
+        # Returns:
+        # - Tuple of lists of dictionary containing education and position embeddings.
         education = []
         position = []
         transit = []
@@ -539,6 +581,12 @@ class ProfileSimilarityCalculator:
         return education, position
 
     async def calculate_profile_similarity(self, profile1, profile2):
+        # Calculate the profile similarity between two profiles.
+        # Parameters:
+        # - profile1: The first profile data.
+        # - profile2: The second profile data.
+        # Returns:
+        # - Dictionary containing education and position mappings.
         (education1, position1), (education2, position2) = await asyncio.gather(self.get_profile_embeddings(profile1), self.get_profile_embeddings(profile2))
         education_mapping = self.process_education(education1, education2)
         position_mapping = self.process_position(position1, position2)
@@ -550,6 +598,12 @@ class ProfileSimilarityCalculator:
         return result
 
     async def process(self, data, max_concurrent = 50):
+        # Process a list of profiles to calculate their similarities.
+        # Parameters:
+        # - data: List of profiles to process.
+        # - max_concurrent: Maximum number of concurrent tasks.
+        # Returns:
+        # - List of results containing profile similarity calculations.
         semaphore = asyncio.Semaphore(max_concurrent)
 
         async def sem_task(task):
@@ -578,6 +632,7 @@ async def test2():
     return 0
 
 if __name__ == "__main__":
+    # Example usage
     start = time.time()
     api_key = open("api_key_unlimited.txt").read().strip()
     psc = ProfileSimilarityCalculator(api_key)
